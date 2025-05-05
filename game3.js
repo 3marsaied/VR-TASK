@@ -323,11 +323,11 @@ function update() {
     return;
   }
 
-  // Check if 80% of the ball is within the outlet
+  // Check if the ball hits the outlet (easy mode) or 80% of the ball is within the outlet (hard mode)
   const ballRadius = currentLevel === 1 ? 15 : 10;
-  const ballLeft = ball.x - ballRadius * 0.8;
-  const ballRight = ball.x + ballRadius * 0.8;
-  const ballBottom = ball.y + ballRadius * 0.8;
+  const ballLeft = ball.x - (currentLevel === 1 ? ballRadius : ballRadius * 0.8);
+  const ballRight = ball.x + (currentLevel === 1 ? ballRadius : ballRadius * 0.8);
+  const ballBottom = ball.y + (currentLevel === 1 ? ballRadius : ballRadius * 0.8);
 
   const outletLeft = outletX;
   const outletRight = outletX + (currentLevel === 1 ? 33 : 22);
