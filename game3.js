@@ -324,9 +324,9 @@ function update() {
   }
 
   // Check if the entire ball is within the outlet
-  const ballLeft = ball.x - BALL_RADIUS;
-  const ballRight = ball.x + BALL_RADIUS;
-  const ballBottom = ball.y + BALL_RADIUS;
+  const ballLeft = ball.x - (currentLevel === 1 ? 15 : 10);
+  const ballRight = ball.x + (currentLevel === 1 ? 15 : 10);
+  const ballBottom = ball.y + (currentLevel === 1 ? 15 : 10);
 
   const outletLeft = outletX;
   const outletRight = outletX + (currentLevel === 1 ? 33 : 22);
