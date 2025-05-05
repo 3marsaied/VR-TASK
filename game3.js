@@ -90,6 +90,9 @@ let touchesDisplay;
 let scoreDisplay;
 let levelDisplay;
 
+// Adjust game logic based on selected shape
+const selectedShape = localStorage.getItem('gameShape') || 'circle';
+
 function preload() {
   this.load.audio(SOUND_BOUNCE, 'assets/ball-bounce.mp3');
   this.load.audio(SOUND_WIN, 'assets/win-sound.mp3');
@@ -269,9 +272,14 @@ function setupLevel(scene) {
     scene.physics.add.existing(wall, true);
   });
 
-  // Create the ball
+  // Create the ball or rectangle based on selected shape
   if (ball) ball.destroy();
-  ball = scene.add.circle(BALL_START_X, BALL_START_Y, ballRadius, BALL_COLORS[currentLevel - 1]);
+  if (selectedShape === 'circle') {
+    ball = scene.add.circle(BALL_START_X, BALL_START_Y, ballRadius, BALL_COLORS[currentLevel - 1]);
+  } else {
+    ball = scene.add.rectangle(BALL_START_X, BALL_START_Y, ballRadius * 2, ballRadius * 2, BALL_COLORS[currentLevel - 1]);
+  }
+
   scene.physics.add.existing(ball);
   ball.body.setCollideWorldBounds(true);
   ball.body.setBounce(BALL_BOUNCE_LEVELS[currentLevel - 1]);

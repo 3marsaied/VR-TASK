@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Bounce Escape - Menu</title>
   <link rel="icon" href="assets/APP%20icon.png" type="image/png">
@@ -73,6 +74,8 @@
   <h1>Bounce Escape</h1>
   <button id="easyBtn" class="btn">Easy Mode</button>
   <button id="hardBtn" class="btn">Hard Mode</button>
+  <button id="circleModeBtn" class="btn">Circle Mode</button>
+  <button id="rectangleModeBtn" class="btn">Rectangle Mode</button>
 
   <!-- Audio element for background music -->
   <audio id="bgMusic" loop>
@@ -140,6 +143,17 @@
           hoverSound.play();
         }
       });
+    });
+
+    // Add event listeners for new mode buttons
+    document.getElementById('circleModeBtn').addEventListener('click', () => {
+      localStorage.setItem('gameShape', 'circle');
+      window.location.href = 'game.html';
+    });
+
+    document.getElementById('rectangleModeBtn').addEventListener('click', () => {
+      localStorage.setItem('gameShape', 'rectangle');
+      window.location.href = 'game.html';
     });
   </script>
 </body>
