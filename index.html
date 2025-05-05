@@ -74,8 +74,8 @@
   <h1>Bounce Escape</h1>
   <button id="easyBtn" class="btn">Easy Mode</button>
   <button id="hardBtn" class="btn">Hard Mode</button>
-  <button id="circleModeBtn" class="btn">Circle Mode</button>
-  <button id="rectangleModeBtn" class="btn">Rectangle Mode</button>
+  <button id="toggleCircleMode" class="btn">Circle Mode: OFF</button>
+  <button id="toggleRectangleMode" class="btn">Rectangle Mode: OFF</button>
 
   <!-- Audio element for background music -->
   <audio id="bgMusic" loop>
@@ -145,15 +145,41 @@
       });
     });
 
-    // Add event listeners for new mode buttons
-    document.getElementById('circleModeBtn').addEventListener('click', () => {
-      localStorage.setItem('gameShape', 'circle');
-      window.location.href = 'game.html';
+    // Initialize toggle states from localStorage
+    const circleModeEnabled = localStorage.getItem('circleMode') === 'true';
+    const rectangleModeEnabled = localStorage.getItem('rectangleMode') === 'true';
+
+    const toggleCircleModeBtn = document.getElementById('toggleCircleMode');
+    const toggleRectangleModeBtn = document.getElementById('toggleRectangleMode');
+
+    // Update button text based on initial states
+    toggleCircleModeBtn.textContent = `Circle Mode: ${circleModeEnabled ? 'ON' : 'OFF'}`;
+    toggleRectangleModeBtn.textContent = `Rectangle Mode: ${rectangleModeEnabled ? 'ON' : 'OFF'}`;
+
+    // Toggle Circle Mode
+    toggleCircleModeBtn.addEventListener('click', () => {
+      const newState = !(localStorage.getItem('circleMode') === 'true');
+      localStorage.setItem('circleMode', newState);
+      toggleCircleModeBtn.textContent = `Circle Mode: ${newState ? 'ON' : 'OFF'}`;
+
+      // Ensure Rectangle Mode is OFF if Circle Mode is ON
+      if (newState) {
+        localStorage.setItem('rectangleMode', false);
+        toggleRectangleModeBtn.textContent = 'Rectangle Mode: OFF';
+      }
     });
 
-    document.getElementById('rectangleModeBtn').addEventListener('click', () => {
-      localStorage.setItem('gameShape', 'rectangle');
-      window.location.href = 'game.html';
+    // Toggle Rectangle Mode
+    toggleRectangleModeBtn.addEventListener('click', () => {
+      const newState = !(localStorage.getItem('rectangleMode') === 'true');
+      localStorage.setItem('rectangleMode', newState);
+      toggleRectangleModeBtn.textContent = `Rectangle Mode: ${newState ? 'ON' : 'OFF'}`;
+
+      // Ensure Circle Mode is OFF if Rectangle Mode is ON
+      if (newState) {
+        localStorage.setItem('circleMode', false);
+        toggleCircleModeBtn.textContent = 'Circle Mode: OFF';
+      }
     });
   </script>
 </body>
