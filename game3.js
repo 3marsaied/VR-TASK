@@ -90,9 +90,6 @@ let touchesDisplay;
 let scoreDisplay;
 let levelDisplay;
 
-// Adjust game logic based on selected shape
-const selectedShape = localStorage.getItem('gameShape') || 'circle';
-
 function preload() {
   this.load.audio(SOUND_BOUNCE, 'assets/ball-bounce.mp3');
   this.load.audio(SOUND_WIN, 'assets/win-sound.mp3');
@@ -216,24 +213,55 @@ function setupLevel(scene) {
   // Calculate outlet position (centered)
   outletX = (GAME_WIDTH - outletWidth) / 2;
 
-  if (selectedShape === 'circle') {
-    // Create circular walls for Circle Mode
-    walls.push(scene.add.circle(GAME_WIDTH / 2, WALL_THICKNESS / 2, WALL_THICKNESS, 0xffffff));
-    walls.push(scene.add.circle(outletX / 2, GAME_HEIGHT - WALL_THICKNESS / 2, WALL_THICKNESS, 0xffffff));
-    walls.push(scene.add.circle(outletX + outletWidth + (GAME_WIDTH - outletX - outletWidth) / 2, GAME_HEIGHT - WALL_THICKNESS / 2, WALL_THICKNESS, 0xffffff));
-    walls.push(scene.add.circle(WALL_THICKNESS / 2, GAME_HEIGHT / 2, WALL_THICKNESS, 0xffffff));
-    walls.push(scene.add.circle(GAME_WIDTH - WALL_THICKNESS / 2, GAME_HEIGHT / 2, WALL_THICKNESS, 0xffffff));
-  } else {
-    // Create rectangular walls for Rectangle Mode
-    walls.push(scene.add.rectangle(GAME_WIDTH / 2, WALL_THICKNESS / 2, GAME_WIDTH, WALL_THICKNESS, 0xffffff));
-    walls.push(scene.add.rectangle(outletX / 2, GAME_HEIGHT - WALL_THICKNESS / 2, outletX, WALL_THICKNESS, 0xffffff));
-    walls.push(scene.add.rectangle(outletX + outletWidth + (GAME_WIDTH - outletX - outletWidth) / 2, GAME_HEIGHT - WALL_THICKNESS / 2, GAME_WIDTH - outletX - outletWidth, WALL_THICKNESS, 0xffffff));
-    walls.push(scene.add.rectangle(WALL_THICKNESS / 2, GAME_HEIGHT / 2, WALL_THICKNESS, GAME_HEIGHT, 0xffffff));
-    walls.push(scene.add.rectangle(GAME_WIDTH - WALL_THICKNESS / 2, GAME_HEIGHT / 2, WALL_THICKNESS, GAME_HEIGHT, 0xffffff));
-  }
+  // Create walls
+  walls.push(scene.add.rectangle(
+    GAME_WIDTH / 2,
+    WALL_THICKNESS / 2,
+    GAME_WIDTH,
+    WALL_THICKNESS,
+    0xffffff
+  ));
+
+  walls.push(scene.add.rectangle(
+    outletX / 2,
+    GAME_HEIGHT - WALL_THICKNESS / 2,
+    outletX,
+    WALL_THICKNESS,
+    0xffffff
+  ));
+
+  walls.push(scene.add.rectangle(
+    outletX + outletWidth + (GAME_WIDTH - outletX - outletWidth) / 2,
+    GAME_HEIGHT - WALL_THICKNESS / 2,
+    GAME_WIDTH - outletX - outletWidth,
+    WALL_THICKNESS,
+    0xffffff
+  ));
+
+  walls.push(scene.add.rectangle(
+    WALL_THICKNESS / 2,
+    GAME_HEIGHT / 2,
+    WALL_THICKNESS,
+    GAME_HEIGHT,
+    0xffffff
+  ));
+
+  walls.push(scene.add.rectangle(
+    GAME_WIDTH - WALL_THICKNESS / 2,
+    GAME_HEIGHT / 2,
+    WALL_THICKNESS,
+    GAME_HEIGHT,
+    0xffffff
+  ));
 
   // Add outlet visual
-  const outlet = scene.add.rectangle(outletX + outletWidth / 2, GAME_HEIGHT - WALL_THICKNESS / 2, outletWidth, WALL_THICKNESS, 0xff0000);
+  const outlet = scene.add.rectangle(
+    outletX + outletWidth / 2,
+    GAME_HEIGHT - WALL_THICKNESS / 2,
+    outletWidth,
+    WALL_THICKNESS,
+    0xff0000
+  );
   outlet.setAlpha(0.5);
 
   // Enable physics on walls
@@ -241,14 +269,9 @@ function setupLevel(scene) {
     scene.physics.add.existing(wall, true);
   });
 
-  // Create the ball or rectangle based on selected shape
+  // Create the ball
   if (ball) ball.destroy();
-  if (selectedShape === 'circle') {
-    ball = scene.add.circle(BALL_START_X, BALL_START_Y, ballRadius, BALL_COLORS[currentLevel - 1]);
-  } else {
-    ball = scene.add.rectangle(BALL_START_X, BALL_START_Y, ballRadius * 2, ballRadius * 2, BALL_COLORS[currentLevel - 1]);
-  }
-
+  ball = scene.add.circle(BALL_START_X, BALL_START_Y, ballRadius, BALL_COLORS[currentLevel - 1]);
   scene.physics.add.existing(ball);
   ball.body.setCollideWorldBounds(true);
   ball.body.setBounce(BALL_BOUNCE_LEVELS[currentLevel - 1]);
