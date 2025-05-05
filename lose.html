@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bounce Escape - Try Again!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #1d1d1d;
+      color: white;
+      opacity: 0;
+      animation: fadeIn 0.5s forwards;
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    h1 {
+      color: #ff3333;
+      font-size: 3em;
+      text-shadow: 0 0 10px #ff0000;
+      margin-bottom: 20px;
+    }
+    .stats-container {
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 10px;
+      padding: 20px;
+      margin: 10px;
+      width: 80%;
+      max-width: 300px;
+    }
+    .stat {
+      margin: 10px 0;
+      font-size: 1.2em;
+    }
+    .stat span {
+      color: #00ccff;
+      font-weight: bold;
+    }
+    #retryBtn {
+      margin-top: 30px;
+      padding: 12px 25px;
+      background: #ff6600;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1.2em;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    #retryBtn:hover {
+      background: #ff8533;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <h1>GAME OVER</h1>
+  
+  <div class="stats-container">
+    <div class="stat">Level: <span id="levelStat"></span></div>
+    <div class="stat">Touches Used: <span id="touchesStat"></span></div>
+    <div class="stat">Time: <span id="timeStat"></span></div>
+  </div>
+
+  <button id="retryBtn">TRY AGAIN</button>
+
+  <script>
+    // Ensure the DOM is fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+      // Display stats from localStorage
+      document.getElementById('levelStat').textContent = 
+        localStorage.getItem('gameLevel') === '1' ? 'Easy' : 'Hard';
+      document.getElementById('touchesStat').textContent = 
+        localStorage.getItem('gameTouches') || '0';
+      document.getElementById('timeStat').textContent = 
+        (parseFloat(localStorage.getItem('gameTime')) || 0).toFixed(1) + 's';
+
+      // Retry button functionality - fixed version
+      document.getElementById('retryBtn').addEventListener('click', function() {
+        console.log('Retry button clicked'); // Debugging
+        try {
+          window.location.href = 'index.html';
+        } catch (e) {
+          console.error('Redirect error:', e);
+        }
+      });
+
+      // Optional: Auto-redirect after delay
+      setTimeout(() => {
+        const btn = document.getElementById('retryBtn');
+        btn.textContent = 'RETURNING IN 5...';
+        let countdown = 5;
+        const timer = setInterval(() => {
+          countdown--;
+          if (countdown > 0) {
+            btn.textContent = `RETURNING IN ${countdown}...`;
+          } else {
+            clearInterval(timer);
+            window.location.href = 'index.html';
+          }
+        }, 1000);
+      }, 10000);
+    });
+  </script>
+</body>
+</html>

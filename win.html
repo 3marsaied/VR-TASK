@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bounce Escape - You Win!</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #1d1d1d;
+      color: white;
+      opacity: 0;
+      animation: fadeIn 1s forwards;
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+    h1 {
+      color: #0f0;
+      font-size: 3em;
+      text-shadow: 0 0 10px #0f0;
+    }
+    .stats {
+      font-size: 1.5em;
+      margin: 10px;
+    }
+    #countdown {
+      margin-top: 30px;
+      color: #aaa;
+    }
+    #returnBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #4444ff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 1.2em;
+      cursor: pointer;
+    }
+    #soundToggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.5);
+      border: none;
+      color: white;
+      padding: 10px;
+      border-radius: 50%;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+    }
+  </style>
+</head>
+<body>
+  <button id="soundToggle">🔊</button>
+  <h1>You Win!</h1>
+  <div class="stats" id="levelStat"></div>
+  <div class="stats" id="touchesStat"></div>
+  <div class="stats" id="timeStat"></div>
+  <div class="stats" id="scoreStat"></div>
+  <div id="countdown"></div>
+  <button id="returnBtn">Return to Menu</button>
+
+  <!-- Audio elements -->
+  <audio id="winSound">
+    <source src="assets/win.wav" type="audio/mpeg">
+  </audio>
+  <audio id="bgMusic" loop>
+    <source src="assets/win.wav" type="audio/mpeg">
+  </audio>
+
+  <script>
+    // Audio elements
+    const winSound = document.getElementById('winSound');
+    const bgMusic = document.getElementById('bgMusic');
+    const soundToggle = document.getElementById('soundToggle');
+
+    // Display stats from localStorage
+    document.getElementById('levelStat').textContent = 'Level: ' + 
+      (localStorage.getItem('gameLevel') === '1' ? 'Easy' : 'Hard');
+    document.getElementById('touchesStat').textContent = 'Touches: ' + 
+      localStorage.getItem('gameTouches');
+    document.getElementById('timeStat').textContent = 'Time: ' + 
+      parseFloat(localStorage.getItem('gameTime')).toFixed(1) + 's';
+    document.getElementById('scoreStat').textContent = 'Score: ' + 
+      localStorage.getItem('gameScore');
+
+    // Sound control functions
+    function playSoundSequence() {
+      // Play win sound first
+      winSound.volume = 0.7;
+      winSound.play()
+        .then(() => {
+          // When win sound ends, start background music
+          winSound.onended = () => {
+            bgMusic.volume = 0.5;
+            bgMusic.play()
+              .catch(e => console.log("Background music play failed:", e));
+          };
+        })
+        .catch(e => console.log("Win sound play failed:", e));
+    }
+
+    // Load sound settings from localStorage
+    if (localStorage.getItem('musicMuted') === 'true') {
+      bgMusic.muted = true;
+      winSound.muted = true;
+      soundToggle.textContent = '🔇';
+    } else {
+      playSoundSequence();
+    }
+
+    // Toggle sound on/off
+    soundToggle.addEventListener('click', () => {
+      bgMusic.muted = !bgMusic.muted;
+      winSound.muted = bgMusic.muted;
+      soundToggle.textContent = bgMusic.muted ? '🔇' : '🔊';
+      localStorage.setItem('musicMuted', bgMusic.muted);
+      
+      if (!bgMusic.muted && bgMusic.paused) {
+        bgMusic.play().catch(e => console.log("Music play failed:", e));
+      }
+    });
+
+    // Auto-return after 20 seconds
+    let seconds = 20;
+    const countdownEl = document.getElementById('countdown');
+    countdownEl.textContent = `Returning to menu in ${seconds} seconds...`;
+    
+    const timer = setInterval(() => {
+      seconds--;
+      countdownEl.textContent = `Returning to menu in ${seconds} seconds...`;
+      if (seconds <= 0) {
+        clearInterval(timer);
+        bgMusic.pause();
+        window.location.href = 'index.html';
+      }
+    }, 1000);
+
+    // Manual return button
+    document.getElementById('returnBtn').addEventListener('click', () => {
+      clearInterval(timer);
+      bgMusic.pause();
+      window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>

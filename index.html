@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bounce Escape - Menu</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #1d1d1d;
+      color: white;
+    }
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
+      text-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
+    }
+    .btn {
+      padding: 15px 30px;
+      margin: 10px;
+      font-size: 1.2rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 200px;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    #easyBtn {
+      background-color: #00aa00;
+      color: white;
+    }
+    #hardBtn {
+      background-color: #aa0000;
+      color: white;
+    }
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+    }
+    #soundToggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.5);
+      border: none;
+      color: white;
+      padding: 10px;
+      border-radius: 50%;
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+    }
+  </style>
+</head>
+<body>
+  <button id="soundToggle">🔊</button>
+  <h1>Bounce Escape</h1>
+  <button id="easyBtn" class="btn">Easy Mode</button>
+  <button id="hardBtn" class="btn">Hard Mode</button>
+
+  <!-- Audio element for background music -->
+  <audio id="bgMusic" loop>
+    <source src="assets/menu-music.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <script>
+    // Background music control
+    const bgMusic = document.getElementById('bgMusic');
+    const soundToggle = document.getElementById('soundToggle');
+    
+    // Try to play music (many browsers require user interaction first)
+    function attemptPlayMusic() {
+      const playPromise = bgMusic.play();
+      
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          // Autoplay was prevented, show muted icon
+          soundToggle.textContent = '🔇';
+          bgMusic.muted = true;
+        });
+      }
+    }
+    
+    // Load music settings from localStorage
+    if (localStorage.getItem('musicMuted') === 'true') {
+      bgMusic.muted = true;
+      soundToggle.textContent = '🔇';
+    } else {
+      attemptPlayMusic();
+    }
+    
+    // Toggle sound on/off
+    soundToggle.addEventListener('click', () => {
+      bgMusic.muted = !bgMusic.muted;
+      soundToggle.textContent = bgMusic.muted ? '🔇' : '🔊';
+      localStorage.setItem('musicMuted', bgMusic.muted);
+      
+      if (!bgMusic.muted) {
+        attemptPlayMusic();
+      }
+    });
+    
+    // Navigation buttons
+    document.getElementById('easyBtn').addEventListener('click', () => {
+      localStorage.setItem('gameLevel', '1');
+      window.location.href = 'game.html';
+    });
+    
+    document.getElementById('hardBtn').addEventListener('click', () => {
+      localStorage.setItem('gameLevel', '2');
+      window.location.href = 'game.html';
+    });
+    
+    // Play sound on button hover
+    const buttons = document.querySelectorAll('.btn');
+    const hoverSound = new Audio('assets/button-hover.mp3');
+    hoverSound.volume = 0.3;
+    
+    buttons.forEach(button => {
+      button.addEventListener('mouseenter', () => {
+        if (!bgMusic.muted) {
+          hoverSound.currentTime = 0;
+          hoverSound.play();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
