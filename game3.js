@@ -160,7 +160,21 @@ function create() {
 
   // 3. Finally setup the game level
   setupLevel(this);
+
   
+  // Add back button functionality
+  document.getElementById('backBtn').addEventListener('click', () => {
+    // Stop the game and return to menu
+    game.destroy(true);
+    try {
+      window.location.href = 'index.html';
+    } catch (e) {
+      console.error("Redirect failed:", e);
+    }
+  });
+
+  // Make sure the back button is on top of the game canvas
+  this.scene.bringToTop();
   
 
   // Touch input
@@ -242,8 +256,10 @@ function setupLevel(scene) {
   ball.body.setVelocity(0, 0);  // Start with zero velocity
 
   // Random starting velocity
-  const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+  // Replace the random starting velocity code with this:
   const speed = Phaser.Math.Between(BALL_MIN_SPEED, BALL_MAX_SPEED) * BALL_SPEED_MULTIPLIERS[currentLevel - 1];
+  // Project upwards at an angle between -45 to 45 degrees from vertical
+  const angle = Phaser.Math.FloatBetween(-Math.PI/4, Math.PI/4) - Math.PI/2;
   ball.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
 
   // Set up collisions
@@ -262,9 +278,15 @@ function createObstacles(scene) {
     const randomType = typeKeys[Phaser.Math.Between(0, typeKeys.length - 1)];
     const obstacleType = OBSTACLE_TYPES[randomType];
 
+    // Position most obstacles in bottom half (60% chance for bottom, 40% for top)
+    const inBottomHalf = Phaser.Math.Between(1, 10) <= 6;
+    const yPosition = inBottomHalf 
+      ? Phaser.Math.Between(GAME_HEIGHT/2 + 50, GAME_HEIGHT - 150)
+      : Phaser.Math.Between(100, GAME_HEIGHT/2 - 50);
+
     const obstacle = scene.add.rectangle(
       Phaser.Math.Between(100, GAME_WIDTH - 100),
-      Phaser.Math.Between(100, GAME_HEIGHT - 150),
+      yPosition,
       Phaser.Math.Between(30, 80),
       Phaser.Math.Between(30, 80),
       obstacleType.color
@@ -346,6 +368,9 @@ function handleBallCollision(scene, ball) {
 }
 
 function update() {
+  if (!this.scene || !this.scene.isActive()) {
+    return; // Scene is being destroyed
+  }
   if (!gameActive) return;
 
   const elapsedTime = (this.time.now - startTime) / 1000;
