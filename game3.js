@@ -41,39 +41,48 @@ const MIN_SWIPE_FACTOR = 1;
 const MAX_SWIPE_FACTOR = 6;
 const FORCE_MULTIPLIERS = [0.75, 0.5];
 
+// Obstacle Constants
+const OBSTACLE_TYPES = {
+  STATIC: {
+    color: 0x666666,
+    effect: (ball) => ball.body.velocity.scale(1.1)
+  },
+  BOUNCY: {
+    color: 0x00aa00,
+    effect: (ball) => ball.body.velocity.scale(1.5)
+  },
+  STICKY: {
+    color: 0xaa00aa,
+    effect: (ball) => ball.body.velocity.scale(0.5)
+  },
+  MOVING: {
+    color: 0x0000aa,
+    effect: (ball) => {} // Movement handled in update
+  }
+};
+
 // Game Constants
 const DIFFICULTY_SETTINGS = {
   1: { // Easy
     maxTouches: 20,
     timePenalty: 0.3,
     touchPenalty: 4,
-    baseScore: 500
+    baseScore: 500,
+    obstacleCount: 2
   },
   2: { // Hard
     maxTouches: 12,
     timePenalty: 0.5,
     touchPenalty: 6,
-    baseScore: 200
+    baseScore: 200,
+    obstacleCount: 4
   }
 };
+
 // Game Objects
 let remainingTouches;
 let currentSettings;
-
-// Sound keys
-const SOUND_BOUNCE = 'bounce';
-const SOUND_WIN = 'win';
-const GAME_OVER = 'lose';
-
-const UI_COLORS = {
-  EASY: '#00ff00',    // Green for easy level
-  HARD: '#ff9900',    // Orange for hard level
-  TEXT: '#ffffff',    // White for regular text
-  ACCENT: '#00ccff',  // Blue for score
-  BACKGROUND: 'rgba(0, 0, 0, 0.5)' // Semi-transparent black
-};
-
-// Game Objects
+let obstacles = [];
 let ball;
 let walls = [];
 let outletX;
@@ -81,14 +90,26 @@ let gameActive = true;
 let touchCount = 0;
 let startTime;
 let currentLevel = 1;
-let levelText;
-let instructionsText;
+
+// Sound keys
+const SOUND_BOUNCE = 'bounce';
+const SOUND_WIN = 'win';
+const GAME_OVER = 'lose';
+
+const UI_COLORS = {
+  EASY: '#00ff00',
+  HARD: '#ff9900',
+  TEXT: '#ffffff',
+  ACCENT: '#00ccff',
+  BACKGROUND: 'rgba(0, 0, 0, 0.5)'
+};
 
 let statsPanel;
 let timeDisplay;
 let touchesDisplay;
 let scoreDisplay;
 let levelDisplay;
+let obstaclesDisplay;
 
 function preload() {
   this.load.audio(SOUND_BOUNCE, 'assets/ball-bounce.mp3');
@@ -97,71 +118,54 @@ function preload() {
 }
 
 function create() {
-  // Get level from localStorage
+  // 1. INITIALIZE SETTINGS FIRST
   currentLevel = parseInt(localStorage.getItem('gameLevel')) || 1;
   currentSettings = DIFFICULTY_SETTINGS[currentLevel];
   remainingTouches = currentSettings.maxTouches;
   startTime = this.time.now;
-  setupLevel(this);
-  // Create the stats panel (semi-transparent background)
-  statsPanel = this.add.rectangle(
-    10, 10, 180, 110, 0x000000, 0.5
-  ).setOrigin(0, 0);
 
-  // Create UI elements
-  /*
-  scoreText = this.add.text(10, 10, 'Touches: 0', { fontSize: '16px', fill: '#fff' });
-  levelText = this.add.text(10, 30, `Level: ${currentLevel === 1 ? 'Easy' : 'Hard'}`, 
-      { fontSize: '16px', fill: '#fff' });
-  instructionsText = this.add.text(10, GAME_HEIGHT - 30, 'Swipe to change ball direction', 
-      { fontSize: '14px', fill: '#aaa' });
-  */
-  // Time display (formatted to 1 decimal)
-  // Level display (top of stats panel)
+  // 2. THEN CREATE UI ELEMENTS
+  statsPanel = this.add.rectangle(10, 10, 180, 140, 0x000000, 0.5).setOrigin(0, 0);
+
   levelDisplay = this.add.text(
     20, 15,
     `LEVEL: ${currentLevel === 1 ? 'EASY' : 'HARD'}`,
-    {
-      fontSize: '18px',
-      fill: currentLevel === 1 ? UI_COLORS.EASY : UI_COLORS.HARD,
-      fontStyle: 'bold'
-    }
+    { fontSize: '18px', fill: currentLevel === 1 ? UI_COLORS.EASY : UI_COLORS.HARD, fontStyle: 'bold' }
   );
+
   timeDisplay = this.add.text(
     20, 40,
     `TIME: ${0}`,
-    {
-      fontSize: '16px',
-      fill: UI_COLORS.TEXT
-    }
+    { fontSize: '16px', fill: UI_COLORS.TEXT }
   );
 
-  // Touches display
+  // Now currentSettings is available!
   touchesDisplay = this.add.text(
     20, 65,
     `TOUCHES: ${remainingTouches}/${currentSettings.maxTouches}`,
-    {
-      fontSize: '16px',
-      fill: UI_COLORS.TEXT
-    }
+    { fontSize: '16px', fill: UI_COLORS.TEXT }
   );
 
-  // Score display (more prominent)
   scoreDisplay = this.add.text(
     20, 90,
     'SCORE: 0',
-    {
-      fontSize: '18px',
-      fill: UI_COLORS.ACCENT,
-      fontStyle: 'bold'
-    }
+    { fontSize: '18px', fill: UI_COLORS.ACCENT, fontStyle: 'bold' }
   );
 
+  obstaclesDisplay = this.add.text(
+    20, 115,
+    `OBSTACLES: 0`,
+    { fontSize: '16px', fill: UI_COLORS.TEXT }
+  );
 
-  // Touch swipe input logic
+  // 3. Finally setup the game level
+  setupLevel(this);
+  
+  
+
+  // Touch input
   this.input.on('pointerdown', (pointer) => {
     if (!gameActive) return;
-
     const touchEffect = this.add.circle(pointer.x, pointer.y, 10, 0xffffff, 0.5);
     this.tweens.add({
       targets: touchEffect,
@@ -185,7 +189,6 @@ function create() {
       const vy = dy * forceMultiplier;
 
       ball.body.setVelocity(vx, vy);
-
       touchCount++;
       remainingTouches--;
       touchesDisplay.setText(`TOUCHES: ${remainingTouches}/${currentSettings.maxTouches}`);
@@ -202,128 +205,174 @@ function create() {
 }
 
 function setupLevel(scene) {
-  // Clear previous walls if any
   walls.forEach(wall => wall.destroy());
   walls = [];
+  obstacles.forEach(obs => obs.destroy());
+  obstacles = [];
 
-  // Set level-specific parameters
   const ballRadius = currentLevel === 1 ? 15 : 10;
   const outletWidth = currentLevel === 1 ? 33 : 22;
-
-  // Calculate outlet position (centered)
   outletX = (GAME_WIDTH - outletWidth) / 2;
 
   // Create walls
-  walls.push(scene.add.rectangle(
-    GAME_WIDTH / 2,
-    WALL_THICKNESS / 2,
-    GAME_WIDTH,
-    WALL_THICKNESS,
-    0xffffff
-  ));
+  walls.push(scene.add.rectangle(GAME_WIDTH / 2, WALL_THICKNESS / 2, GAME_WIDTH, WALL_THICKNESS, 0xffffff));
+  walls.push(scene.add.rectangle(outletX / 2, GAME_HEIGHT - WALL_THICKNESS / 2, outletX, WALL_THICKNESS, 0xffffff));
+  walls.push(scene.add.rectangle(outletX + outletWidth + (GAME_WIDTH - outletX - outletWidth) / 2, GAME_HEIGHT - WALL_THICKNESS / 2, GAME_WIDTH - outletX - outletWidth, WALL_THICKNESS, 0xffffff));
+  walls.push(scene.add.rectangle(WALL_THICKNESS / 2, GAME_HEIGHT / 2, WALL_THICKNESS, GAME_HEIGHT, 0xffffff));
+  walls.push(scene.add.rectangle(GAME_WIDTH - WALL_THICKNESS / 2, GAME_HEIGHT / 2, WALL_THICKNESS, GAME_HEIGHT, 0xffffff));
 
-  walls.push(scene.add.rectangle(
-    outletX / 2,
-    GAME_HEIGHT - WALL_THICKNESS / 2,
-    outletX,
-    WALL_THICKNESS,
-    0xffffff
-  ));
-
-  walls.push(scene.add.rectangle(
-    outletX + outletWidth + (GAME_WIDTH - outletX - outletWidth) / 2,
-    GAME_HEIGHT - WALL_THICKNESS / 2,
-    GAME_WIDTH - outletX - outletWidth,
-    WALL_THICKNESS,
-    0xffffff
-  ));
-
-  walls.push(scene.add.rectangle(
-    WALL_THICKNESS / 2,
-    GAME_HEIGHT / 2,
-    WALL_THICKNESS,
-    GAME_HEIGHT,
-    0xffffff
-  ));
-
-  walls.push(scene.add.rectangle(
-    GAME_WIDTH - WALL_THICKNESS / 2,
-    GAME_HEIGHT / 2,
-    WALL_THICKNESS,
-    GAME_HEIGHT,
-    0xffffff
-  ));
-
-  // Add outlet visual
-  const outlet = scene.add.rectangle(
-    outletX + outletWidth / 2,
-    GAME_HEIGHT - WALL_THICKNESS / 2,
-    outletWidth,
-    WALL_THICKNESS,
-    0xff0000
-  );
+  // Add outlet
+  const outlet = scene.add.rectangle(outletX + outletWidth / 2, GAME_HEIGHT - WALL_THICKNESS / 2, outletWidth, WALL_THICKNESS, 0xff0000);
   outlet.setAlpha(0.5);
 
   // Enable physics on walls
-  walls.forEach(wall => {
-    scene.physics.add.existing(wall, true);
-  });
+  walls.forEach(wall => scene.physics.add.existing(wall, true));
 
-  // Create the ball
-  if (ball) ball.destroy();
+  // Create obstacles
+  obstacles = createObstacles(scene);
+  obstaclesDisplay.setText(`OBSTACLES: ${obstacles.length}`);
+
+  // Create ball
+  // Replace the ball creation code with this:
   ball = scene.add.circle(BALL_START_X, BALL_START_Y, ballRadius, BALL_COLORS[currentLevel - 1]);
   scene.physics.add.existing(ball);
+  ball.body.setCircle(ballRadius);  // This is crucial - matches visual to physics
   ball.body.setCollideWorldBounds(true);
   ball.body.setBounce(BALL_BOUNCE_LEVELS[currentLevel - 1]);
+  ball.body.setVelocity(0, 0);  // Start with zero velocity
 
-  // Give ball random starting velocity
+  // Random starting velocity
   const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
   const speed = Phaser.Math.Between(BALL_MIN_SPEED, BALL_MAX_SPEED) * BALL_SPEED_MULTIPLIERS[currentLevel - 1];
   ball.body.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
 
-  // Ball-wall collisions with sound
-  walls.forEach(wall => {
-    scene.physics.add.collider(ball, wall, () => {
-      scene.sound.play(SOUND_BOUNCE, { volume: 0.3 });
-      scene.tweens.add({
-        targets: ball,
-        fillColor: 0xff0000,
-        duration: 100,
-        yoyo: true,
-        onComplete: () => {
-          ball.fillColor = BALL_COLORS[currentLevel - 1];
-        }
-      });
-    });
-  });
+  // Set up collisions
+  setupCollisions(scene, ball, walls, obstacles);
 
-  // Reset game state
   gameActive = true;
   touchCount = 0;
-  if (touchesDisplay) touchesDisplay.setText('Touches: 0');
+}
+
+function createObstacles(scene) {
+  const newObstacles = [];
+  const obstacleCount = currentSettings.obstacleCount;
+
+  for (let i = 0; i < obstacleCount; i++) {
+    const typeKeys = Object.keys(OBSTACLE_TYPES);
+    const randomType = typeKeys[Phaser.Math.Between(0, typeKeys.length - 1)];
+    const obstacleType = OBSTACLE_TYPES[randomType];
+
+    const obstacle = scene.add.rectangle(
+      Phaser.Math.Between(100, GAME_WIDTH - 100),
+      Phaser.Math.Between(100, GAME_HEIGHT - 150),
+      Phaser.Math.Between(30, 80),
+      Phaser.Math.Between(30, 80),
+      obstacleType.color
+    );
+
+    // Store obstacle type and effect
+    obstacle.setData('type', randomType);
+    obstacle.setData('effect', obstacleType.effect);  // This is crucial!
+
+    const physicsBody = scene.physics.add.existing(obstacle);
+    physicsBody.body.setImmovable(true);
+    physicsBody.body.checkCollision.none = false;
+    physicsBody.body.setSize(obstacle.width, obstacle.height);
+    physicsBody.body.setOffset(0, 0);
+    physicsBody.body.setAllowGravity(false);
+    
+    // Add type property for easy access
+    obstacle.type = randomType;
+
+    if (randomType === 'MOVING') {
+      obstacle.speed = Phaser.Math.Between(50, 100);
+      obstacle.direction = Phaser.Math.Between(0, 1) ? 1 : -1;
+    }
+
+    // Visual effects
+    if (randomType === 'BOUNCY' || randomType === 'STICKY') {
+      scene.tweens.add({
+        targets: obstacle,
+        alpha: 0.7,
+        duration: 1000,
+        yoyo: true,
+        repeat: -1
+      });
+    }
+
+    newObstacles.push(obstacle);
+  }
+
+  return newObstacles;
+}
+
+function setupCollisions(scene, ball, walls, obstacles) {
+  walls.forEach(wall => {
+    scene.physics.add.collider(ball, wall, () => handleBallCollision(scene, ball));
+  });
+
+  obstacles.forEach(obstacle => {
+    scene.physics.add.collider(ball, obstacle, () => {
+      const effect = obstacle.getData('effect');
+      if (effect && typeof effect === 'function') {
+        effect(ball);
+      }
+      handleBallCollision(scene, ball);
+
+      if (obstacle.type === 'STICKY') {
+        scene.tweens.add({
+          targets: ball,
+          scaleX: 0.9,
+          scaleY: 1.1,
+          duration: 200,
+          yoyo: true
+        });
+      }
+    });
+  });
+}
+
+function handleBallCollision(scene, ball) {
+  scene.sound.play(SOUND_BOUNCE, { volume: 0.3 });
+  scene.tweens.add({
+    targets: ball,
+    fillColor: 0xff0000,
+    duration: 100,
+    yoyo: true,
+    onComplete: () => {
+      ball.fillColor = BALL_COLORS[currentLevel - 1];
+    }
+  });
 }
 
 function update() {
   if (!gameActive) return;
 
-  // Update time display every frame
   const elapsedTime = (this.time.now - startTime) / 1000;
   timeDisplay.setText(`TIME: ${elapsedTime.toFixed(1)}s`);
 
-  // Update decreasing score
-  const currentScore = Math.max(0, currentSettings.baseScore -
-    (elapsedTime * currentSettings.timePenalty) -
+  const currentScore = Math.max(0, currentSettings.baseScore - 
+    (elapsedTime * currentSettings.timePenalty) - 
     ((currentSettings.maxTouches - remainingTouches) * currentSettings.touchPenalty));
-
   scoreDisplay.setText(`SCORE: ${Math.floor(currentScore)}`);
 
-  // Check if touches are exhausted
   if (remainingTouches <= 0 || currentScore === 0) {
     handleGameOver(this);
     return;
   }
 
-  // Check if the ball hits the outlet (easy mode) or 80% of the ball is within the outlet (hard mode)
+  // Update moving obstacles
+  obstacles.forEach(obstacle => {
+    if (obstacle.type === 'MOVING') {
+      obstacle.x += obstacle.speed * obstacle.direction * (currentLevel === 2 ? 1.5 : 1) * this.game.loop.delta / 1000;
+      
+      if (obstacle.x < 50 || obstacle.x > GAME_WIDTH - 50) {
+        obstacle.direction *= -1;
+      }
+    }
+  });
+
+  // Check win condition
   const ballRadius = currentLevel === 1 ? 15 : 10;
   const ballLeft = ball.x - (currentLevel === 1 ? ballRadius : ballRadius * 0.8);
   const ballRight = ball.x + (currentLevel === 1 ? ballRadius : ballRadius * 0.8);
@@ -340,19 +389,14 @@ function update() {
     const timeTaken = (this.time.now - startTime) / 1000;
     const score = Math.round((timeTaken * 10) + (touchCount * 5));
 
-    // Save game results to localStorage
     localStorage.setItem('gameTouches', touchCount);
     localStorage.setItem('gameTime', timeTaken);
     localStorage.setItem('gameScore', score);
 
-    // Add visual effects before redirect
     this.cameras.main.fadeOut(1000, 0, 0, 0);
-
-    // Freeze the ball and physics
     ball.body.setVelocity(0, 0);
     ball.body.setImmovable(true);
 
-    // Redirect after 2 seconds (2000 milliseconds)
     this.time.delayedCall(2000, () => {
       try {
         window.location.href = 'win.html';
@@ -365,37 +409,20 @@ function update() {
 }
 
 function showInGameWinMessage(scene, score) {
-  // Create a dark overlay
   const overlay = scene.add.rectangle(
-    GAME_WIDTH / 2,
-    GAME_HEIGHT / 2,
-    GAME_WIDTH,
-    GAME_HEIGHT,
-    0x000000,
-    0.7
+    GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.7
   );
 
-  // Win message text
   const winText = scene.add.text(
-    GAME_WIDTH / 2,
-    GAME_HEIGHT / 2 - 50,
+    GAME_WIDTH / 2, GAME_HEIGHT / 2 - 50,
     'YOU WIN!\nScore: ' + score,
-    {
-      fontSize: '32px',
-      fill: '#0f0',
-      align: 'center'
-    }
+    { fontSize: '32px', fill: '#0f0', align: 'center' }
   ).setOrigin(0.5);
 
-  // Return to menu button
   const menuButton = scene.add.text(
-    GAME_WIDTH / 2,
-    GAME_HEIGHT / 2 + 50,
+    GAME_WIDTH / 2, GAME_HEIGHT / 2 + 50,
     'Return to Menu',
-    {
-      fontSize: '24px',
-      fill: '#ff0'
-    }
+    { fontSize: '24px', fill: '#ff0' }
   ).setOrigin(0.5).setInteractive();
 
   menuButton.on('pointerdown', () => {
@@ -406,7 +433,6 @@ function showInGameWinMessage(scene, score) {
     }
   });
 
-  // Add some animation
   scene.tweens.add({
     targets: [overlay, winText, menuButton],
     alpha: { from: 0, to: 1 },
@@ -418,11 +444,9 @@ function handleGameOver(scene) {
   gameActive = false;
   scene.sound.play(GAME_OVER, { volume: 0.9 });
 
-
-  // Save results
   const finalTime = (scene.time.now - startTime) / 1000;
-  const finalScore = Math.floor(Math.max(0, currentSettings.baseScore -
-    (finalTime * currentSettings.timePenalty) -
+  const finalScore = Math.floor(Math.max(0, currentSettings.baseScore - 
+    (finalTime * currentSettings.timePenalty) - 
     (currentSettings.maxTouches * currentSettings.touchPenalty)));
 
   localStorage.setItem('gameResult', 'lose');
@@ -430,7 +454,6 @@ function handleGameOver(scene) {
   localStorage.setItem('gameTime', finalTime);
   localStorage.setItem('gameScore', finalScore);
 
-  // Show game over screen
   scene.cameras.main.fadeOut(1000, 0, 0, 0);
   scene.time.delayedCall(1500, () => {
     window.location.href = 'lose.html';
